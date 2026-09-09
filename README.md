@@ -12,10 +12,11 @@ This repo is documentation-first. The running app is Docker Compose plus (for lo
 4. [`docs/decisions.md`](docs/decisions.md) — locked choices
 5. [`docs/architecture.md`](docs/architecture.md) — Compose, env, seed-if-empty
 6. [`docs/data-setup.md`](docs/data-setup.md) — `.bak` → Postgres, demo clock
-7. Schema allow-lists: [`sales`](docs/schema-sales.md), [`purchasing`](docs/schema-purchasing.md), [`warehouse`](docs/schema-warehouse.md), [`application`](docs/schema-application.md)
-8. [`docs/insight-rules.md`](docs/insight-rules.md) — advanced deterministic insights
-9. [`docs/api.md`](docs/api.md) — HTTP/SSE
-10. [`docs/evaluation.md`](docs/evaluation.md) — how to judge the demo (not a hardcoded script)
+7. [`docs/data-readme.md`](docs/data-readme.md) — what you can ask, boundaries, example questions
+8. Schema allow-lists: [`sales`](docs/schema-sales.md), [`purchasing`](docs/schema-purchasing.md), [`warehouse`](docs/schema-warehouse.md), [`application`](docs/schema-application.md)
+9. [`docs/insight-rules.md`](docs/insight-rules.md) — advanced deterministic insights
+10. [`docs/api.md`](docs/api.md) — HTTP/SSE
+11. [`docs/evaluation.md`](docs/evaluation.md) — how to judge the demo (not a hardcoded script)
 
 HTML under `mock ui/` is visual reference only. Tables in those files are popups; the MVP is the shrinking chat + data pane in the design guidelines.
 

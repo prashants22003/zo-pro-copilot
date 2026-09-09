@@ -119,6 +119,7 @@ Target submission: **9 August, morning**. If that date is already past the worki
 | `agentflow.md` | Orchestrator, agents, routing, allow-lists |
 | `docs/architecture.md` | Compose, services, env, health, seed-if-empty |
 | `docs/data-setup.md` | `.bak` → SQL Server → Postgres, clock, cutoff |
+| `docs/data-readme.md` | What you can ask, boundaries, owner-style example questions |
 | `docs/schema-sales.md` | Sales allow-list, joins, where to look |
 | `docs/schema-purchasing.md` | Purchasing allow-list |
 | `docs/schema-warehouse.md` | Stock items, holdings, transactions |
