@@ -1,0 +1,63 @@
+# One-time WWI .bak → Postgres. CPU/RAM/disk only — no GPU.
+# Run from repo root:  powershell -File infra/migrate/run.ps1
+
+name: zopro-migrate
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "ZoPro_Migrate_2026!"
+      MSSQL_PID: "Developer"
+      MSSQL_MEMORY_LIMIT_MB: "2048"
+    mem_limit: 2560m
+    cpus: 2.0
+    shm_size: "1gb"
+    volumes:
+      - ../../data/WideWorldImporters-Full.bak:/var/opt/mssql/backup/wwi.bak:ro
+    ports:
+      - "14333:1433"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zopro
+      POSTGRES_PASSWORD: zopro_local_dev
+      POSTGRES_DB: zopro
+    mem_limit: 1536m
+    cpus: 2.0
+    volumes:
+      - zopro_pg_migrate:/var/lib/postgresql/data
+      - ../../data:/dump
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zopro -d zopro"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+    environment:
+      MSSQL_HOST: sqlserver
+      MSSQL_SA_PASSWORD: "ZoPro_Migrate_2026!"
+      BAK_PATH: /var/opt/mssql/backup/wwi.bak
+      PG_DSN: postgresql://zopro:zopro_local_dev@postgres:5432/zopro
+      REPORT_PATH: /dump/migrate-report.txt
+      COPY_BATCH: "4000"
+    mem_limit: 768m
+    cpus: 1.0
+    volumes:
+      - ../../data:/dump
+    depends_on:
+      sqlserver:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+volumes:
+  zopro_pg_migrate:

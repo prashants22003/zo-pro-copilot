@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Enterprise Copilot — Fluid UI concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --ink:#0E1420;
+    --ink-2:#141B2B;
+    --ink-3:#1B2438;
+    --surface:#F7F8FA;
+    --line: rgba(255,255,255,0.08);
+    --line-strong: rgba(255,255,255,0.14);
+    --text-hi:#F3F5F8;
+    --text-mid:#AEB6C6;
+    --text-low:#6E7788;
+    --flow:#3E7CB8;
+    --flow-soft: rgba(62,124,184,0.16);
+    --brass:#C9A45C;
+    --brass-soft: rgba(201,164,92,0.14);
+    --sage:#4F9E82;
+    --sage-soft: rgba(79,158,130,0.14);
+    --font-voice:'Fraunces', serif;
+    --font-ui:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: var(--ink);
+    font-family: var(--font-ui);
+    color: var(--text-hi);
+    min-height:100vh;
+  }
+  .app{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 24px 32px;
+    position:relative;
+  }
+
+  /* ambient flow line */
+  .ambient{
+    position:absolute;
+    top:0; left:0; right:0;
+    height:180px;
+    overflow:hidden;
+    pointer-events:none;
+    z-index:0;
+  }
+  .ambient svg{ width:140%; height:100%; opacity:0.35; }
+  .ambient path{
+    fill:none;
+    stroke: var(--flow);
+    stroke-width:1;
+    stroke-dasharray: 6 10;
+    animation: drift 18s linear infinite;
+  }
+  .ambient path.p2{ stroke: var(--sage); animation-duration: 24s; opacity:0.6; }
+  @keyframes drift{
+    from{ stroke-dashoffset:0; }
+    to{ stroke-dashoffset:-320; }
+  }
+
+  header{
+    position:relative;
+    z-index:1;
+    padding: 28px 0 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .brand .mark{
+    width:28px; height:28px;
+    border-radius:8px;
+    background: linear-gradient(160deg, var(--flow), var(--sage));
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-voice);
+    font-weight:600;
+    font-size:14px;
+    color:#0E1420;
+  }
+  .brand span{
+    font-size:14px;
+    color: var(--text-mid);
+    letter-spacing:0.01em;
+  }
+  .status{
+    display:flex; align-items:center; gap:8px;
+    font-size:12px;
+    color: var(--text-low);
+  }
+  .status .dot{
+    width:6px; height:6px;
+    border-radius:50%;
+    background: var(--sage);
+    box-shadow: 0 0 0 3px var(--sage-soft);
+  }
+
+  main{ position:relative; z-index:1; padding-top: 8px; }
+
+  .thread{ display:flex; flex-direction:column; gap:22px; }
+
+  .msg{ display:flex; gap:12px; max-width: 86%; }
+  .msg.user{ align-self:flex-end; flex-direction:row-reverse; max-width:70%; }
+
+  .avatar{
+    width:30px; height:30px; border-radius:50%;
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px;
+    background: var(--ink-3);
+    border: 1px solid var(--line);
+    color: var(--text-mid);
+  }
+  .msg.user .avatar{ background: var(--flow-soft); color:#BFDBF7; border-color: rgba(62,124,184,0.3); }
+
+  .bubble{ padding-top:3px; }
+  .bubble .role{
+    font-size:11px;
+    color: var(--text-low);
+    margin: 0 0 5px;
+  }
+  .bubble .text{
+    font-family: var(--font-voice);
+    font-size:16px;
+    line-height:1.6;
+    color: var(--text-hi);
+    margin:0;
+  }
+  .msg.user .bubble .text{
+    font-family: var(--font-ui);
+    font-size:14.5px;
+    color: var(--text-mid);
+    background: var(--ink-2);
+    border: 1px solid var(--line);
+    padding:10px 14px;
+    border-radius: 14px 14px 4px 14px;
+  }
+
+  /* insight card - the "fluid arrival" moment */
+  .insight-wrap{
+    display:flex;
+    padding-left:42px;
+  }
+  .insight{
+    max-width:480px;
+    width:100%;
+    background: var(--ink-2);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--brass);
+    border-radius: 4px 12px 12px 4px;
+    padding:14px 16px;
+    opacity:0;
+    transform: translateY(10px) translateX(-6px);
+    animation: settle 0.7s cubic-bezier(0.2,0.7,0.3,1) forwards;
+    animation-delay: 0.3s;
+  }
+  .insight.positive{ border-left-color: var(--sage); }
+  @keyframes settle{
+    to{ opacity:1; transform: translateY(0) translateX(0); }
+  }
+  .insight-head{
+    display:flex; align-items:center; gap:8px;
+    margin-bottom:8px;
+  }
+  .insight-head i{ font-size:15px; color: var(--brass); }
+  .insight.positive .insight-head i{ color: var(--sage); }
+  .insight-head .label{
+    font-size:11.5px;
+    color: var(--brass);
+    font-weight:500;
+  }
+  .insight.positive .insight-head .label{ color: var(--sage); }
+  .insight p{
+    margin:0 0 10px;
+    font-size:13.5px;
+    line-height:1.55;
+    color: var(--text-mid);
+  }
+  .insight .metric-row{
+    display:flex; gap:18px;
+    margin-bottom:10px;
+  }
+  .metric{ }
+  .metric .n{
+    font-family: var(--font-voice);
+    font-size:22px;
+    color: var(--text-hi);
+    display:block;
+  }
+  .metric .l{
+    font-size:11px;
+    color: var(--text-low);
+  }
+  .insight .src{
+    font-size:11px;
+    color: var(--text-low);
+    display:flex;
+    align-items:center;
+    gap:5px;
+    border-top: 1px solid var(--line);
+    padding-top:9px;
+    margin-top:2px;
+  }
+  .insight .src i{ font-size:12px; color: var(--text-low); }
+
+  /* inline chart */
+  .chart-wrap{
+    padding-left:42px;
+    margin-top:-6px;
+  }
+  .chart-card{
+    background: var(--ink-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px 10px;
+    max-width:480px;
+  }
+  .chart-card .ct-label{ font-size:12px; color:var(--text-low); margin-bottom:10px; }
+  .bars{ display:flex; align-items:flex-end; gap:8px; height:80px; }
+  .bars .bar{ flex:1; background: var(--flow); border-radius:3px 3px 0 0; opacity:0.85; position:relative; }
+  .bars .bar.low{ background: var(--brass); }
+  .bars .bar span{
+    position:absolute; bottom:-18px; left:0; right:0; text-align:center;
+    font-size:10px; color:var(--text-low);
+  }
+
+  /* input */
+  .composer{
+    position:relative; z-index:1;
+    margin-top:28px;
+    background: var(--ink-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 16px;
+    padding: 12px 12px 12px 18px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .composer input{
+    flex:1;
+    background:none;
+    border:none;
+    outline:none;
+    color: var(--text-hi);
+    font-family: var(--font-ui);
+    font-size:14px;
+  }
+  .composer input::placeholder{ color: var(--text-low); }
+  .composer .send{
+    width:32px; height:32px;
+    border-radius:9px;
+    background: var(--flow-soft);
+    border:1px solid rgba(62,124,184,0.3);
+    color:#BFDBF7;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    font-size:15px;
+  }
+  .composer .chip{
+    font-size:11.5px;
+    color: var(--text-low);
+    border: 1px solid var(--line);
+    padding:4px 9px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .quick-row{
+    display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="ambient">
+    <svg viewBox="0 0 800 180" preserveAspectRatio="none">
+      <path class="p1" d="M0,60 C150,20 250,100 400,60 C550,20 650,100 800,60"></path>
+      <path class="p2" d="M0,110 C150,150 250,80 400,110 C550,150 650,80 800,110"></path>
+    </svg>
+  </div>
+
+  <header>
+    <div class="brand">
+      <div class="mark">C</div>
+      <span>Current — enterprise copilot</span>
+    </div>
+    <div class="status"><span class="dot"></span>Connected to WWI · sales + purchasing</div>
+  </header>
+
+  <main>
+    <div class="thread">
+
+      <div class="msg">
+        <div class="avatar"><i class="ti ti-sparkles"></i></div>
+        <div class="bubble">
+          <p class="role">Copilot</p>
+          <p class="text">Morning. Before you ask anything — two things surfaced overnight that are worth a look.</p>
+        </div>
+      </div>
+
+      <div class="insight-wrap">
+        <div class="insight">
+          <div class="insight-head"><i class="ti ti-alert-triangle"></i><span class="label">Needs attention</span></div>
+          <p>Stock for Ergonomic Desk Mat is projected to run out in 6 days. The next purchase order from Fabrikam Supply isn't due to arrive for 11.</p>
+          <div class="metric-row">
+            <div class="metric"><span class="n">6d</span><span class="l">until stockout</span></div>
+            <div class="metric"><span class="n">11d</span><span class="l">until next PO arrives</span></div>
+          </div>
+          <div class="src"><i class="ti ti-database"></i>Warehouse.StockItems · Purchasing.PurchaseOrders</div>
+        </div>
+      </div>
+
+      <div class="insight-wrap">
+        <div class="insight positive">
+          <div class="insight-head"><i class="ti ti-trending-up"></i><span class="label">Worth noting</span></div>
+          <p>Tailspin Toys placed three orders this week, their highest weekly volume in the past two quarters.</p>
+          <div class="src"><i class="ti ti-database"></i>Sales.Orders · Sales.Customers</div>
+        </div>
+      </div>
+
+      <div class="msg user">
+        <div class="avatar">Y</div>
+        <div class="bubble"><p class="text">what's driving the desk mat shortage — did we undersize the last order?</p></div>
+      </div>
+
+      <div class="msg">
+        <div class="avatar"><i class="ti ti-sparkles"></i></div>
+        <div class="bubble">
+          <p class="role">Purchase agent</p>
+          <p class="text">The last order matched the usual reorder quantity, but sell-through jumped 40% this month — the order size wasn't the problem, demand moved faster than the reorder point accounts for.</p>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-card">
+          <div class="ct-label">Weekly units sold — Ergonomic Desk Mat</div>
+          <div class="bars">
+            <div class="bar" style="height:35%"><span>W1</span></div>
+            <div class="bar" style="height:42%"><span>W2</span></div>
+            <div class="bar" style="height:38%"><span>W3</span></div>
+            <div class="bar low" style="height:78%"><span>W4</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="composer">
+      <input type="text" placeholder="Ask about sales, purchasing, or a specific supplier or product…">
+      <div class="send"><i class="ti ti-arrow-up"></i></div>
+    </div>
+    <div class="quick-row">
+      <div class="chip">Raise the reorder point</div>
+      <div class="chip">Show similar at-risk SKUs</div>
+      <div class="chip">Compare with last quarter</div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,83 @@
+name: zopro
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zopro
+      POSTGRES_PASSWORD: zopro_local_dev
+      POSTGRES_DB: zopro
+    ports:
+      - "5432:5432"
+    volumes:
+      - zopro_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zopro -d zopro"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  seed:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: zopro
+      POSTGRES_PASSWORD: zopro_local_dev
+      POSTGRES_DB: zopro
+    volumes:
+      - ./data/wwi-postgres.dump:/dump/wwi-postgres.dump:ro
+      - ./infra/migrate/roles.sql:/roles.sql:ro
+      - ./infra/seed/after_restore.sql:/after_restore.sql:ro
+      - ./infra/seed/seed.sh:/seed.sh:ro
+    entrypoint: ["sh", "-c", "tr -d '\\r' < /seed.sh | sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://zopro:zopro_local_dev@postgres:5432/zopro
+      SALES_DATABASE_URL: postgresql://sales_agent_role:sales_agent_local@postgres:5432/zopro
+      PURCHASE_DATABASE_URL: postgresql://purchase_agent_role:purchase_agent_local@postgres:5432/zopro
+      INSIGHT_DATABASE_URL: postgresql://insight_role:insight_agent_local@postgres:5432/zopro
+      DOCS_DIR: /docs
+      CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5-coder:7b-instruct-q4_K_M}
+      ORCH_PROVIDER: ${ORCH_PROVIDER:-gemini}
+      ORCH_MODEL: ${ORCH_MODEL:-gemini-3.6-flash}
+      AGENT_PROVIDER: ${AGENT_PROVIDER:-ollama}
+      AGENT_MODEL: ${AGENT_MODEL:-qwen2.5-coder:7b-instruct-q4_K_M}
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      INSIGHT_NARRATE: ${INSIGHT_NARRATE:-template}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  zopro_pg:

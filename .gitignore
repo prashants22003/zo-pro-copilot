@@ -1,0 +1,20 @@
+.env
+.env.*
+!.env.example
+
+# Local WWI backup and Postgres dump — do not commit
+data/*.bak
+*.bak
+data/*.dump
+data/migrate-report.txt
+
+# Unused sample CSVs may stay; ignore OS junk
+.DS_Store
+Thumbs.db
+
+node_modules/
+dist/
+__pycache__/
+.venv/
+venv/
+*.pyc

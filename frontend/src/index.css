@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: #14120f;
+}
+
+body {
+  font-family: Inter, sans-serif;
+}
+
+@keyframes drift {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -320;
+  }
+}
+
+.ambient-path {
+  fill: none;
+  stroke-width: 1;
+  stroke-dasharray: 6 10;
+  animation: drift 20s linear infinite;
+}
+
+.ambient-path.p2 {
+  animation-duration: 26s;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-path {
+    animation: none;
+  }
+}

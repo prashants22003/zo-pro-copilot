@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Enterprise Copilot — Fluid UI v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --ink:#14120F;
+    --ink-1:#1C1915;
+    --ink-2:#241F19;
+    --line: rgba(245,240,230,0.08);
+    --line-strong: rgba(245,240,230,0.16);
+    --text-hi:#F5F0E6;
+    --text-mid:#B9AF9D;
+    --text-low:#756D5E;
+    --gold:#E3A542;
+    --gold-soft: rgba(227,165,66,0.14);
+    --teal:#2E6E62;
+    --teal-soft: rgba(46,110,98,0.18);
+    --teal-line: rgba(88,158,144,0.35);
+    --ember:#C1502E;
+    --ember-soft: rgba(193,80,46,0.14);
+    --font-voice:'Fraunces', serif;
+    --font-ui:'Inter', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+    --ease: cubic-bezier(0.22,0.8,0.28,1);
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background: var(--ink); font-family: var(--font-ui); color: var(--text-hi); min-height:100vh; }
+  .app{ max-width: 760px; margin: 0 auto; padding: 0 24px 32px; position:relative; }
+
+  .ambient{ position:absolute; top:0; left:0; right:0; height:170px; overflow:hidden; pointer-events:none; z-index:0; }
+  .ambient svg{ width:140%; height:100%; opacity:0.3; }
+  .ambient path{ fill:none; stroke: var(--gold); stroke-width:1; stroke-dasharray: 6 10; animation: drift 20s linear infinite; }
+  .ambient path.p2{ stroke: var(--teal); animation-duration: 26s; opacity:0.7; }
+  @keyframes drift{ from{ stroke-dashoffset:0; } to{ stroke-dashoffset:-320; } }
+
+  header{ position:relative; z-index:1; padding: 28px 0 20px; display:flex; align-items:center; justify-content:space-between; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .mark{ width:28px; height:28px; border-radius:8px; background: linear-gradient(155deg, var(--gold), var(--teal)); display:flex; align-items:center; justify-content:center; font-family: var(--font-voice); font-weight:600; font-size:14px; color:#14120F; }
+  .brand span{ font-size:14px; color: var(--text-mid); }
+  .status{ display:flex; align-items:center; gap:8px; font-size:12px; color: var(--text-low); }
+  .status .dot{ width:6px; height:6px; border-radius:50%; background: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+
+  main{ position:relative; z-index:1; padding-top: 8px; }
+  .thread{ display:flex; flex-direction:column; gap:22px; }
+  .msg{ display:flex; gap:12px; max-width: 86%; }
+  .msg.user{ align-self:flex-end; flex-direction:row-reverse; max-width:70%; }
+  .avatar{ width:30px; height:30px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:13px; background: var(--ink-2); border: 1px solid var(--line); color: var(--text-mid); }
+  .msg.user .avatar{ background: var(--gold-soft); color: var(--gold); border-color: rgba(227,165,66,0.3); }
+  .bubble{ padding-top:3px; }
+  .bubble .role{ font-size:11px; color: var(--text-low); margin: 0 0 5px; }
+  .bubble .text{ font-family: var(--font-voice); font-size:16px; line-height:1.6; color: var(--text-hi); margin:0; }
+  .msg.user .bubble .text{ font-family: var(--font-ui); font-size:14.5px; color: var(--text-mid); background: var(--ink-1); border: 1px solid var(--line); padding:10px 14px; border-radius: 14px 14px 4px 14px; }
+
+  .insight-wrap{ display:flex; padding-left:42px; }
+  .insight{
+    max-width:480px; width:100%;
+    background: var(--ink-1); border: 1px solid var(--line);
+    border-left: 2px solid var(--ember);
+    border-radius: 4px 12px 12px 4px;
+    padding:14px 16px;
+    opacity:0; transform: translateY(10px) translateX(-6px);
+    animation: settle 0.7s var(--ease) forwards; animation-delay: 0.3s;
+    cursor:pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .insight:hover{ background: var(--ink-2); border-color: var(--line-strong); }
+  .insight.positive{ border-left-color: var(--gold); }
+  @keyframes settle{ to{ opacity:1; transform: translateY(0) translateX(0); } }
+  .insight-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .insight-head .left{ display:flex; align-items:center; gap:8px; }
+  .insight-head i.tag{ font-size:15px; color: var(--ember); }
+  .insight.positive .insight-head i.tag{ color: var(--gold); }
+  .insight-head .label{ font-size:11.5px; color: var(--ember); font-weight:500; }
+  .insight.positive .insight-head .label{ color: var(--gold); }
+  .insight-head .expand{ font-size:14px; color: var(--text-low); }
+  .insight p{ margin:0 0 10px; font-size:13.5px; line-height:1.55; color: var(--text-mid); }
+  .insight .metric-row{ display:flex; gap:18px; margin-bottom:10px; }
+  .metric .n{ font-family: var(--font-mono); font-size:21px; color: var(--text-hi); display:block; }
+  .metric .l{ font-size:11px; color: var(--text-low); }
+  .insight .src{ font-size:11px; color: var(--text-low); display:flex; align-items:center; gap:5px; border-top: 1px solid var(--line); padding-top:9px; margin-top:2px; }
+  .insight .src i{ font-size:12px; }
+
+  .chart-wrap{ padding-left:42px; margin-top:-6px; }
+  .chart-card{ background: var(--ink-1); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px 10px; max-width:480px; cursor:pointer; transition: background 0.2s, border-color 0.2s; }
+  .chart-card:hover{ background: var(--ink-2); border-color: var(--line-strong); }
+  .chart-card .ct-label{ font-size:12px; color:var(--text-low); margin-bottom:10px; display:flex; justify-content:space-between; }
+  .bars{ display:flex; align-items:flex-end; gap:8px; height:80px; }
+  .bars .bar{ flex:1; background: var(--teal); border-radius:3px 3px 0 0; opacity:0.9; position:relative; }
+  .bars .bar.hi{ background: var(--gold); }
+  .bars .bar span{ position:absolute; bottom:-18px; left:0; right:0; text-align:center; font-size:10px; font-family: var(--font-mono); color:var(--text-low); }
+
+  .composer{ position:relative; z-index:1; margin-top:28px; background: var(--ink-1); border: 1px solid var(--line-strong); border-radius: 16px; padding: 12px 12px 12px 18px; display:flex; align-items:center; gap:10px; }
+  .composer input{ flex:1; background:none; border:none; outline:none; color: var(--text-hi); font-family: var(--font-ui); font-size:14px; }
+  .composer input::placeholder{ color: var(--text-low); }
+  .composer .send{ width:32px; height:32px; border-radius:9px; background: var(--gold-soft); border:1px solid rgba(227,165,66,0.3); color: var(--gold); display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .quick-row{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .chip{ font-size:11.5px; color: var(--text-low); border: 1px solid var(--line); padding:4px 9px; border-radius:20px; white-space:nowrap; }
+
+  /* drill-down morph system */
+  .scrim{
+    position:fixed; inset:0; background: rgba(10,9,7,0.6); backdrop-filter: blur(2px);
+    opacity:0; pointer-events:none; transition: opacity 0.4s var(--ease); z-index:20;
+  }
+  .scrim.show{ opacity:1; pointer-events:auto; }
+
+  .drawer{
+    position:fixed; z-index:21;
+    background: var(--ink-1); border: 1px solid var(--line-strong);
+    overflow:hidden;
+    transition: top 0.5s var(--ease), left 0.5s var(--ease), width 0.5s var(--ease), height 0.5s var(--ease), border-radius 0.5s var(--ease);
+    display:flex; flex-direction:column;
+  }
+  .drawer-inner{ opacity:0; transition: opacity 0.25s ease; height:100%; display:flex; flex-direction:column; }
+  .drawer.open .drawer-inner{ opacity:1; transition-delay:0.22s; }
+
+  .drawer-head{ padding:18px 22px 14px; border-bottom:1px solid var(--line); flex-shrink:0; }
+  .crumb{ font-size:11.5px; color: var(--text-low); margin-bottom:6px; }
+  .crumb b{ color: var(--text-mid); font-weight:500; }
+  .drawer-title{ display:flex; align-items:center; justify-content:space-between; }
+  .drawer-title h3{ font-family: var(--font-voice); font-weight:500; font-size:19px; margin:0; color: var(--text-hi); }
+  .close-btn{ width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:none; color: var(--text-mid); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px; }
+  .close-btn:hover{ background: var(--ink-2); }
+
+  .sql-toggle{ margin-top:12px; font-size:12px; color: var(--teal-line); cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+  .sql-box{ display:none; margin-top:10px; background: var(--ink); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-family: var(--font-mono); font-size:12px; color: var(--text-mid); line-height:1.6; white-space:pre-wrap; }
+  .sql-box.show{ display:block; }
+
+  .drawer-body{ padding: 4px 22px 20px; overflow-y:auto; flex:1; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{ text-align:left; font-size:11px; color: var(--text-low); font-weight:500; padding:10px 8px; border-bottom:1px solid var(--line); position:sticky; top:0; background: var(--ink-1); }
+  tbody td{ padding:10px 8px; border-bottom:1px solid var(--line); color: var(--text-mid); }
+  tbody td.num{ font-family: var(--font-mono); color: var(--text-hi); text-align:right; }
+  tbody tr:hover td{ background: var(--ink-2); }
+  .row-flag td:first-child{ position:relative; }
+  .row-flag td:first-child::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background: var(--ember); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="ambient">
+    <svg viewBox="0 0 800 180" preserveAspectRatio="none">
+      <path class="p1" d="M0,60 C150,20 250,100 400,60 C550,20 650,100 800,60"></path>
+      <path class="p2" d="M0,110 C150,150 250,80 400,110 C550,150 650,80 800,110"></path>
+    </svg>
+  </div>
+
+  <header>
+    <div class="brand"><div class="mark">C</div><span>Current — enterprise copilot</span></div>
+    <div class="status"><span class="dot"></span>Connected to WWI · sales + purchasing</div>
+  </header>
+
+  <main>
+    <div class="thread">
+
+      <div class="msg">
+        <div class="avatar"><i class="ti ti-sparkles"></i></div>
+        <div class="bubble"><p class="role">Copilot</p><p class="text">Morning. Two things surfaced overnight worth a look — tap either card to see the underlying rows.</p></div>
+      </div>
+
+      <div class="insight-wrap">
+        <div class="insight" id="card-stock" onclick="openDrawer('card-stock')">
+          <div class="insight-head">
+            <div class="left"><i class="ti ti-alert-triangle tag"></i><span class="label">Needs attention</span></div>
+            <i class="ti ti-arrows-diagonal expand"></i>
+          </div>
+          <p>Stock for Ergonomic Desk Mat is projected to run out in 6 days. The next purchase order from Fabrikam Supply isn't due for 11.</p>
+          <div class="metric-row">
+            <div class="metric"><span class="n">6d</span><span class="l">until stockout</span></div>
+            <div class="metric"><span class="n">11d</span><span class="l">until PO arrives</span></div>
+          </div>
+          <div class="src"><i class="ti ti-database"></i>Warehouse.StockItems · Purchasing.PurchaseOrders</div>
+        </div>
+      </div>
+
+      <div class="insight-wrap">
+        <div class="insight positive" id="card-tailspin" onclick="openDrawer('card-tailspin')">
+          <div class="insight-head">
+            <div class="left"><i class="ti ti-trending-up tag"></i><span class="label">Worth noting</span></div>
+            <i class="ti ti-arrows-diagonal expand"></i>
+          </div>
+          <p>Tailspin Toys placed three orders this week, their highest weekly volume in the past two quarters.</p>
+          <div class="src"><i class="ti ti-database"></i>Sales.Orders · Sales.Customers</div>
+        </div>
+      </div>
+
+      <div class="msg user"><div class="avatar">Y</div><div class="bubble"><p class="text">what's driving the desk mat shortage?</p></div></div>
+      <div class="msg"><div class="avatar"><i class="ti ti-sparkles"></i></div><div class="bubble"><p class="role">Purchase agent</p><p class="text">The last order matched the usual reorder quantity, but sell-through jumped 40% this month — demand moved faster than the reorder point accounts for.</p></div></div>
+
+      <div class="chart-wrap">
+        <div class="chart-card" id="card-chart" onclick="openDrawer('card-chart')">
+          <div class="ct-label"><span>Weekly units sold — Ergonomic Desk Mat</span><i class="ti ti-arrows-diagonal"></i></div>
+          <div class="bars">
+            <div class="bar" style="height:35%"><span>W1</span></div>
+            <div class="bar" style="height:42%"><span>W2</span></div>
+            <div class="bar" style="height:38%"><span>W3</span></div>
+            <div class="bar hi" style="height:78%"><span>W4</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="composer">
+      <input type="text" placeholder="Ask about sales, purchasing, or a specific supplier or product…">
+      <div class="send"><i class="ti ti-arrow-up"></i></div>
+    </div>
+    <div class="quick-row">
+      <div class="chip">Raise the reorder point</div>
+      <div class="chip">Show similar at-risk SKUs</div>
+      <div class="chip">Compare with last quarter</div>
+    </div>
+  </main>
+</div>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer"></div>
+
+<script>
+const DATA = {
+  'card-stock': {
+    crumb: 'Warehouse.StockItems <b>filtered</b> Product = Ergonomic Desk Mat',
+    title: 'Stock and open purchase orders',
+    sql: `SELECT si.StockItemName, si.QuantityOnHand, si.ReorderLevel,\n       po.PurchaseOrderID, po.OrderDate, po.ExpectedDeliveryDate\nFROM Warehouse.StockItems si\nLEFT JOIN Purchasing.PurchaseOrderLines pol ON pol.StockItemID = si.StockItemID\nLEFT JOIN Purchasing.PurchaseOrders po ON po.PurchaseOrderID = pol.PurchaseOrderID\nWHERE si.StockItemName = 'Ergonomic Desk Mat'\nORDER BY po.ExpectedDeliveryDate;`,
+    cols: ['Stock item', 'Qty on hand', 'Reorder level', 'Open PO', 'Expected delivery'],
+    rows: [
+      ['Ergonomic Desk Mat', '84', '250', 'PO-10432', '2026-09-17', true],
+      ['Ergonomic Desk Mat', '84', '250', 'PO-10389 (received)', '2026-08-29', false],
+      ['Ergonomic Desk Mat', '84', '250', 'PO-10301 (received)', '2026-08-02', false],
+    ]
+  },
+  'card-tailspin': {
+    crumb: 'Sales.Orders <b>filtered</b> Customer = Tailspin Toys · last 14 days',
+    title: 'Recent orders — Tailspin Toys',
+    sql: `SELECT o.OrderID, o.OrderDate, o.TotalAmount, o.Status\nFROM Sales.Orders o\nJOIN Sales.Customers c ON c.CustomerID = o.CustomerID\nWHERE c.CustomerName = 'Tailspin Toys'\n  AND o.OrderDate >= CURRENT_DATE - INTERVAL '14 days'\nORDER BY o.OrderDate DESC;`,
+    cols: ['Order ID', 'Date', 'Amount', 'Status'],
+    rows: [
+      ['SO-88213', '2026-09-04', '$12,340', 'Fulfilled', false],
+      ['SO-88190', '2026-09-02', '$9,875', 'Fulfilled', false],
+      ['SO-88144', '2026-08-30', '$14,020', 'Processing', false],
+    ]
+  },
+  'card-chart': {
+    crumb: 'Sales.OrderLines <b>filtered</b> Product = Ergonomic Desk Mat · by week',
+    title: 'Weekly sell-through detail',
+    sql: `SELECT DATE_TRUNC('week', o.OrderDate) AS week, SUM(ol.Quantity) AS units\nFROM Sales.OrderLines ol\nJOIN Sales.Orders o ON o.OrderID = ol.OrderID\nWHERE ol.StockItemID = (SELECT StockItemID FROM Warehouse.StockItems WHERE StockItemName='Ergonomic Desk Mat')\nGROUP BY 1 ORDER BY 1;`,
+    cols: ['Week', 'Units sold', 'Vs. prior week', 'Orders'],
+    rows: [
+      ['W1', '112', '—', '9'],
+      ['W2', '134', '+20%', '11'],
+      ['W3', '121', '−10%', '10'],
+      ['W4', '218', '+80%', '17', true],
+    ]
+  }
+};
+
+function openDrawer(id){
+  const cardEl = document.getElementById(id);
+  const data = DATA[id];
+  const rect = cardEl.getBoundingClientRect();
+  const drawer = document.getElementById('drawer');
+  const scrim = document.getElementById('scrim');
+
+  const rowsHtml = data.rows.map(r => {
+    const flagged = r[r.length-1] === true;
+    const cells = r.slice(0, data.cols.length);
+    return `<tr${flagged ? ' class="row-flag"' : ''}>` +
+      cells.map((c,i) => `<td class="${i===0?'':'num'}">${c}</td>`).join('') +
+      `</tr>`;
+  }).join('');
+
+  drawer.innerHTML = `<div class="drawer-inner">
+    <div class="drawer-head">
+      <div class="crumb">${data.crumb}</div>
+      <div class="drawer-title"><h3>${data.title}</h3><button class="close-btn" onclick="closeDrawer()"><i class="ti ti-x"></i></button></div>
+      <div class="sql-toggle" onclick="this.nextElementSibling.classList.toggle('show')"><i class="ti ti-code"></i> View SQL</div>
+      <div class="sql-box">${data.sql.replace(/</g,'&lt;')}</div>
+    </div>
+    <div class="drawer-body">
+      <table><thead><tr>${data.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rowsHtml}</tbody></table>
+    </div>
+  </div>`;
+
+  drawer.style.top = rect.top + 'px';
+  drawer.style.left = rect.left + 'px';
+  drawer.style.width = rect.width + 'px';
+  drawer.style.height = rect.height + 'px';
+  drawer.style.borderRadius = '12px';
+  drawer.classList.remove('open');
+  scrim.classList.add('show');
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const targetW = Math.min(640, window.innerWidth - 48);
+      const targetH = Math.min(520, window.innerHeight - 80);
+      drawer.style.top = ((window.innerHeight - targetH)/2) + 'px';
+      drawer.style.left = ((window.innerWidth - targetW)/2) + 'px';
+      drawer.style.width = targetW + 'px';
+      drawer.style.height = targetH + 'px';
+      drawer.style.borderRadius = '16px';
+      drawer.classList.add('open');
+    });
+  });
+
+  drawer.dataset.originId = id;
+}
+
+function closeDrawer(){
+  const drawer = document.getElementById('drawer');
+  const scrim = document.getElementById('scrim');
+  const id = drawer.dataset.originId;
+  const cardEl = document.getElementById(id);
+  if(!cardEl) return;
+  const rect = cardEl.getBoundingClientRect();
+  drawer.classList.remove('open');
+  scrim.classList.remove('show');
+  drawer.style.top = rect.top + 'px';
+  drawer.style.left = rect.left + 'px';
+  drawer.style.width = rect.width + 'px';
+  drawer.style.height = rect.height + 'px';
+  drawer.style.borderRadius = '12px';
+}
+</script>
+</body>
+</html>
