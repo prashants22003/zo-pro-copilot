@@ -7,4 +7,4 @@ COPY backend/app /app/app
 COPY docs /docs
 ENV DOCS_DIR=/docs
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

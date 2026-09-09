@@ -6,6 +6,7 @@ import re
 from .config import get_settings
 from .providers import gemini as gemini_provider
 from .providers import ollama as ollama_provider
+from .providers import openai_compat as openai_compat_provider
 from .providers.types import ChatMessage, GenerateResult, ToolCall, ToolSpec
 
 _TOOL_TAG = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.S | re.I)
@@ -47,6 +48,8 @@ def _provider_ready(provider: str) -> bool:
     settings = get_settings()
     if provider == "gemini":
         return bool(settings.gemini_api_key)
+    if provider == "nvidia":
+        return bool(settings.nvidia_api_key)
     return ollama_provider.ping()
 
 
@@ -62,6 +65,8 @@ def unavailable_message(role: str = "orchestrator") -> str:
     model = model_for_role(role)
     if provider == "gemini":
         return "Gemini is not configured. Add GEMINI_API_KEY to .env and restart the API."
+    if provider == "nvidia":
+        return "NVIDIA NIM is not configured. Add NVIDIA_API_KEY to .env and restart the API."
     return (
         f"Ollama is not reachable at {settings.ollama_host}. "
         f"Start Ollama on the host and run: ollama pull {model}"
@@ -212,6 +217,8 @@ def generate(
     model = model_for_role(role)
     if provider == "gemini":
         result = gemini_provider.generate(system, messages, tools, model=model)
+    elif provider == "nvidia":
+        result = openai_compat_provider.generate(system, messages, tools, model=model)
     else:
         result = ollama_provider.generate(system, messages, tools, model=model)
     if result.tool_calls:

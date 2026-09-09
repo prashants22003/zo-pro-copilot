@@ -4,7 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_ORCH_OLLAMA = "qwen2.5:7b-instruct"
 DEFAULT_AGENT_OLLAMA = "qwen2.5-coder:7b-instruct-q4_K_M"
+DEFAULT_AGENT_NVIDIA = "nvidia/nemotron-3.5-lightning-30b-a3b"
 DEFAULT_GEMINI = "gemini-3.6-flash"
+DEFAULT_NVIDIA_BASE = "https://integrate.api.nvidia.com/v1"
 
 
 class Settings(BaseSettings):
@@ -25,10 +27,12 @@ class Settings(BaseSettings):
     llm_model: str = ""
     orch_provider: str = "gemini"
     orch_model: str = ""
-    agent_provider: str = "ollama"
+    agent_provider: str = "nvidia"
     agent_model: str = ""
     ollama_host: str = "http://host.docker.internal:11434"
     gemini_api_key: str = ""
+    nvidia_api_key: str = ""
+    nvidia_base_url: str = DEFAULT_NVIDIA_BASE
     insight_narrate: str = "template"
     cors_origins: str = "http://localhost:8080,http://localhost:5173,http://127.0.0.1:8080,http://127.0.0.1:5173"
     query_row_cap: int = 500
@@ -46,8 +50,8 @@ class Settings(BaseSettings):
 
     @property
     def resolved_agent_provider(self) -> str:
-        raw = (self.agent_provider or "ollama").strip().lower()
-        return raw or "ollama"
+        raw = (self.agent_provider or "nvidia").strip().lower()
+        return raw or "nvidia"
 
     @property
     def resolved_orch_model(self) -> str:
@@ -63,6 +67,8 @@ class Settings(BaseSettings):
             return self.agent_model.strip()
         if self.resolved_agent_provider == "gemini":
             return DEFAULT_GEMINI
+        if self.resolved_agent_provider == "nvidia":
+            return self.llm_model.strip() or DEFAULT_AGENT_NVIDIA
         return self.llm_model.strip() or DEFAULT_AGENT_OLLAMA
 
     @property

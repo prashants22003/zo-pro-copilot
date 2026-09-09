@@ -57,6 +57,17 @@ def _clock_payload(clock: date) -> dict[str, Any]:
 
 @app.on_event("startup")
 def _startup():
+    agent = settings.resolved_agent_provider
+    if agent == "ollama":
+        from .llm import llm_available
+
+        if not llm_available("agent"):
+            print(
+                f"WARNING: Ollama is not reachable at {settings.ollama_host}",
+                flush=True,
+            )
+    else:
+        print(f"agent provider {agent} (no local Ollama ping)", flush=True)
     if not is_seeded():
         print("WARNING: database does not look seeded", flush=True)
         return
@@ -114,6 +125,7 @@ def _sse(event: str, data: dict) -> str:
 @app.post("/chat")
 def chat(body: ChatIn):
     def gen():
+        yield ": keepalive\n\n"
         try:
             result = run_chat(body.message, body.history)
         except Exception as exc:

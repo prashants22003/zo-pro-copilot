@@ -40,6 +40,12 @@ export type ChatEvent =
   | { event: "error"; data: { message: string } }
   | { event: "done"; data: { message_id: string } };
 
+function apiUrl(path: string): string {
+  const base = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+  if (!base) return `/api${path}`;
+  return `${base}${path}`;
+}
+
 async function readSSE(
   res: Response,
   onEvent: (ev: ChatEvent) => void
@@ -67,7 +73,7 @@ async function readSSE(
 }
 
 export async function getHealth() {
-  const r = await fetch("/api/health");
+  const r = await fetch(apiUrl("/health"));
   return r.json() as Promise<{
     ok: boolean;
     postgres: string;
@@ -77,7 +83,7 @@ export async function getHealth() {
 }
 
 export async function getClock() {
-  const r = await fetch("/api/clock");
+  const r = await fetch(apiUrl("/clock"));
   return r.json() as Promise<{
     demo_clock: string;
     data_min: string;
@@ -86,7 +92,7 @@ export async function getClock() {
 }
 
 export async function patchClock(demo_clock: string) {
-  const r = await fetch("/api/clock", {
+  const r = await fetch(apiUrl("/clock"), {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ demo_clock }),
@@ -96,7 +102,7 @@ export async function patchClock(demo_clock: string) {
 }
 
 export async function getAlerts() {
-  const r = await fetch("/api/alerts");
+  const r = await fetch(apiUrl("/alerts"));
   return r.json() as Promise<{ alerts: Card[]; demo_clock: string }>;
 }
 
@@ -105,7 +111,7 @@ export async function streamChat(
   history: { role: string; content: string }[],
   onEvent: (ev: ChatEvent) => void
 ) {
-  const r = await fetch("/api/chat", {
+  const r = await fetch(apiUrl("/chat"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, history }),
@@ -115,7 +121,7 @@ export async function streamChat(
 }
 
 export async function drilldown(card: Card): Promise<Tab> {
-  const r = await fetch("/api/drilldown", {
+  const r = await fetch(apiUrl("/drilldown"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
