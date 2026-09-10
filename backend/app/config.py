@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     llm_provider: str = "ollama"
     llm_model: str = ""
-    orch_provider: str = "gemini"
+    orch_provider: str = "nvidia"
     orch_model: str = ""
     agent_provider: str = "nvidia"
     agent_model: str = ""
@@ -45,8 +45,8 @@ class Settings(BaseSettings):
 
     @property
     def resolved_orch_provider(self) -> str:
-        raw = (self.orch_provider or "gemini").strip().lower()
-        return raw or "gemini"
+        raw = (self.orch_provider or "nvidia").strip().lower()
+        return raw or "nvidia"
 
     @property
     def resolved_agent_provider(self) -> str:
@@ -59,6 +59,8 @@ class Settings(BaseSettings):
             return self.orch_model.strip()
         if self.resolved_orch_provider == "gemini":
             return self.llm_model.strip() or DEFAULT_GEMINI
+        if self.resolved_orch_provider == "nvidia":
+            return DEFAULT_AGENT_NVIDIA
         return DEFAULT_ORCH_OLLAMA
 
     @property

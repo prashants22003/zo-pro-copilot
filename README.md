@@ -2,7 +2,7 @@
 
 Chat copilot over Wide World Importers sales and purchasing data. Ask in plain language, get answers from Postgres, open the underlying rows by splitting the chat — not a popup.
 
-This repo is documentation-first. Chat uses **Gemini** (orchestrator) and **NVIDIA NIM** (SQL agents) against **Supabase Postgres**. The same keys and database work on your laptop and on Render.
+This repo is documentation-first. Chat uses **NVIDIA NIM** for the orchestrator and SQL agents against **Supabase Postgres**. Gemini remains an optional orchestrator. The same keys and database work on your laptop and on Render.
 
 ## Read in this order
 
@@ -35,7 +35,7 @@ WWI dates are 2013–2016. Set “today” in the header (default example `2015-
 
 ## Run
 
-1. Copy `.env.example` to `.env`. Set `GEMINI_API_KEY` and `NVIDIA_API_KEY`. Point the four `*_DATABASE_URL` values at your Supabase **session pooler** (port 5432) with `sslmode=require`.
+1. Copy `.env.example` to `.env`. Set `NVIDIA_API_KEY`. Point the four `*_DATABASE_URL` values at your Supabase **session pooler** (port 5432) with `sslmode=require`.
 
 2. Start the API (uses Supabase + NIM, no local Postgres):
 
@@ -50,18 +50,19 @@ WWI dates are 2013–2016. Set “today” in the header (default example `2015-
 
 Insight cards stay on templates (`INSIGHT_NARRATE=template`). Pytest and Vitest mock the LLMs and do not call Gemini or NIM.
 
-Clock/FY questions work even if Gemini and NIM are down. Metric questions need both keys plus a seeded database.
+Clock/FY questions work even if NIM is down. Metric questions need `NVIDIA_API_KEY` plus a seeded database.
 
 ### Providers
 
 ```
-ORCH_PROVIDER=gemini
-ORCH_MODEL=gemini-3.6-flash
-GEMINI_API_KEY=...
+ORCH_PROVIDER=nvidia
+ORCH_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
 AGENT_PROVIDER=nvidia
 AGENT_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
 NVIDIA_API_KEY=...
 ```
+
+Optional Gemini orchestrator: `ORCH_PROVIDER=gemini`, `ORCH_MODEL=gemini-3.6-flash`, `GEMINI_API_KEY=...`.
 
 Do not set `AGENT_PROVIDER=gemini` — that puts the SQL retry loop on Gemini and will exhaust quota.
 

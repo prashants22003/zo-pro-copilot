@@ -86,6 +86,41 @@ def test_generate_dispatches_nvidia_agent_not_ollama(monkeypatch) -> None:
     ]
 
 
+class _NvidiaBothSettings:
+    resolved_orch_provider = "nvidia"
+    resolved_orch_model = "nvidia/nemotron-3.5-lightning-30b-a3b"
+    resolved_agent_provider = "nvidia"
+    resolved_agent_model = "nvidia/nemotron-3.5-lightning-30b-a3b"
+    gemini_api_key = ""
+    nvidia_api_key = "nvapi-test"
+    ollama_host = "http://localhost:11434"
+
+
+def test_generate_dispatches_nvidia_orchestrator(monkeypatch) -> None:
+    recorded: list[tuple[str, str | None]] = []
+
+    def fake_gemini(system, messages, tools=None, model=None):
+        recorded.append(("gemini", model))
+        return GenerateResult(text="from-gemini")
+
+    def fake_nvidia(system, messages, tools=None, model=None):
+        recorded.append(("nvidia", model))
+        return GenerateResult(text="from-nvidia")
+
+    monkeypatch.setattr("app.llm.get_settings", lambda: _NvidiaBothSettings())
+    monkeypatch.setattr("app.llm.gemini_provider.generate", fake_gemini)
+    monkeypatch.setattr("app.llm.openai_compat_provider.generate", fake_nvidia)
+
+    orch = generate("sys", [], role="orchestrator")
+    agent = generate("sys", [], role="agent")
+    assert orch.text == "from-nvidia"
+    assert agent.text == "from-nvidia"
+    assert recorded == [
+        ("nvidia", "nvidia/nemotron-3.5-lightning-30b-a3b"),
+        ("nvidia", "nvidia/nemotron-3.5-lightning-30b-a3b"),
+    ]
+
+
 def test_nvidia_available_without_ollama_ping(monkeypatch) -> None:
     def boom() -> bool:
         raise AssertionError("Ollama must not be pinged for NVIDIA")

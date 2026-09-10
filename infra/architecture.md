@@ -1,6 +1,6 @@
 # Architecture — Zo-Pro Copilot
 
-Laptop and the public demo are the **same mode**: Gemini (orchestrator) + NVIDIA NIM (SQL agents) + one Supabase Postgres. Ollama remains in the codebase as an optional local path; it is not the default. There is no Groq fallback.
+Laptop and the public demo are the **same mode**: NVIDIA NIM (orchestrator + SQL agents) + one Supabase Postgres. Gemini remains an optional orchestrator. Ollama remains in the codebase as an optional local path. There is no Groq fallback.
 
 ## 1. One running mode
 
@@ -11,23 +11,24 @@ Laptop and the public demo are the **same mode**: Gemini (orchestrator) + NVIDIA
 └──────────────┘               └──────────┬──────────┘
                                           │
                     ┌─────────────────────┼─────────────────────┐
-                    ▼                     ▼                     ▼
-           ┌────────────────┐    ┌──────────────┐    ┌──────────────────┐
-           │ Supabase        │    │ Gemini API    │    │ NVIDIA NIM        │
-           │ Postgres        │    │ orchestrator  │    │ nvidia/nemotron-  │
-           │ (session pooler,│    │ gemini-3.6-   │    │ 3.5-lightning-    │
-           │  sslmode=require)│    │ flash         │    │ 30b-a3b            │
-           └────────────────┘    └──────────────┘    └──────────────────┘
+                    ▼                                           ▼
+           ┌────────────────┐                         ┌──────────────────┐
+           │ Supabase        │                         │ NVIDIA NIM        │
+           │ Postgres        │                         │ orchestrator +    │
+           │ (session pooler,│                         │ SQL agents        │
+           │  sslmode=require)│                         │ nemotron-3.5-     │
+           └────────────────┘                         │ lightning-30b     │
+                                                      └──────────────────┘
 ```
 
-The laptop uses the same four DB URLs, `GEMINI_API_KEY`, and `NVIDIA_API_KEY` as Render. Switching to a public URL is hosting, not a code fork.
+The laptop uses the same four DB URLs and `NVIDIA_API_KEY` as Render. Switching to a public URL is hosting, not a code fork.
 
 | | Laptop | Shared demo |
 |---|---|---|
 | Frontend | Vite (`npm run dev`) or Compose `web` | Vercel static build |
 | Backend | uvicorn or Compose `api` | Render free web service (Docker) |
 | Database | Supabase | Same Supabase project |
-| Orchestrator | Gemini Flash `gemini-3.6-flash` | Same |
+| Orchestrator | NVIDIA NIM `nvidia/nemotron-3.5-lightning-30b-a3b` | Same |
 | Agent LLM | NVIDIA NIM `nvidia/nemotron-3.5-lightning-30b-a3b` | Same |
 | Optional offline DB | `docker compose --profile local-db up` | not used |
 
@@ -90,10 +91,8 @@ Free projects pause after **7 days idle**; unpause in the dashboard. Do not use 
 ## 4. Provider config surface
 
 ```
-ORCH_PROVIDER=gemini
-ORCH_MODEL=gemini-3.6-flash
-GEMINI_API_KEY=...
-
+ORCH_PROVIDER=nvidia
+ORCH_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
 AGENT_PROVIDER=nvidia
 AGENT_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
 NVIDIA_API_KEY=nvapi-...
