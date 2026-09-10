@@ -56,7 +56,7 @@ def card_from_query_result(
         "kind": "chart" if chart else "insight",
         "category": category,
         "title": title,
-        "text": f"Open for the picture and rows — {summary}.",
+        "text": f"Tap to see the rows behind {summary}.",
         "metrics": kpis[:3],
         "display_sources": result.get("display_sources") or [],
         "sql_executed": last_sql,

@@ -33,6 +33,7 @@ export type Tab = {
 };
 
 export type ChatEvent =
+  | { event: "status"; data: { text: string } }
   | { event: "token"; data: { text: string } }
   | { event: "card"; data: Card }
   | { event: "sources"; data: { display_sources: string[] } }

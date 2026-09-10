@@ -89,12 +89,14 @@ Schema:
 
 When you are done, return JSON only:
 {{
-  "answer": "plain language summary",
+  "answer": "short spoken summary with the figure, no SQL or table names",
   "source_tables": ["sales.invoices"],
   "confidence": "ok | partial | no_data",
   "metrics_used": ["optional names of metrics"],
   "chart": null
 }}
+The answer field is for a colleague, not a database. One or two sentences, takeaway then number.
+Never mention SQL, schema.table names, or column identifiers there — source_tables and metrics_used carry the proof.
 Do not invent a chart. The server draws charts from the SQL rows.
 Call execute_sql as needed (max a few queries)."""
 

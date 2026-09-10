@@ -3,13 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { Card, Tab } from "./api";
+import { streamChat } from "./api";
 
 const sampleCard: Card = {
   id: "card-1",
   kind: "insight",
   category: "info",
   title: "Line profit",
-  text: "Open for the picture and rows — 1,200,000 line_profit.",
+  text: "Tap to see the rows behind 1,200,000 line profit.",
   metrics: [{ value: "1,200,000", label: "line profit" }],
   display_sources: ["Sales.InvoiceLines"],
   sql_executed: "SELECT SUM(il.line_profit) AS profit FROM sales.invoice_lines il",
@@ -75,5 +76,34 @@ describe("dashboard pane", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("data-pane")).toBeNull();
     });
+  });
+});
+
+describe("chat waiting state", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows a human status instead of a SQL cue", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.mocked(streamChat).mockImplementation(async (_message, _history, onEvent) => {
+      onEvent({ event: "status", data: { text: "I’ll check sales as of the demo clock." } });
+      await gate;
+      onEvent({ event: "token", data: { text: "March line profit came to 1,200,000." } });
+      onEvent({ event: "done", data: { message_id: "m" } });
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText(/tap a card/i);
+    await user.type(screen.getByPlaceholderText(/ask about sales/i), "March profit");
+    await user.click(screen.getByLabelText("Send"));
+    expect(await screen.findByText(/check sales as of the demo clock/i)).toBeTruthy();
+    expect(screen.queryByText(/looking at the tables/i)).toBeNull();
+    release();
+    expect(await screen.findByText(/march line profit came to/i)).toBeTruthy();
+    expect(screen.queryByText(/check sales as of the demo clock/i)).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 from datetime import date
 
 from app.llm import GenerateResult, ToolCall, orchestrator_tools
-from app.agents.orchestrator import run_chat
+from app.agents.orchestrator import opening_status, run_chat
 
 CLOCK = date(2015, 9, 14)
 
@@ -136,6 +136,31 @@ def test_leaked_json_uses_template(monkeypatch) -> None:
     assert "execute_sql" not in out["answer"]
     assert "SELECT" not in out["answer"]
     assert "line_profit" in out["answer"].lower() or "Line profit" in out["answer"] or "profit" in out["answer"].lower()
+    assert "Sales.InvoiceLines" not in out["answer"]
+
+
+def test_opening_status_names_the_domain() -> None:
+    assert "sales" in opening_status("how much profit we made in march 2015?").lower()
+    assert "purchasing" in opening_status("Show overdue purchase orders").lower()
+    assert "attention" in opening_status("what needs attention?").lower()
+
+
+def test_on_status_reports_routing(monkeypatch) -> None:
+    notes: list[str] = []
+
+    def fake_generate(system, messages, tools=None, role="orchestrator"):
+        if tools:
+            return GenerateResult(
+                text="",
+                tool_calls=[ToolCall(name="sales_agent", args={"question": "profit"})],
+            )
+        return GenerateResult(text="March line profit came to 1,200,000.")
+
+    _patch_clock_and_llm(monkeypatch, fake_generate, lambda **k: dict(SALES_RESULT))
+    run_chat("how much profit we made in march 2015?", [], on_status=notes.append)
+    joined = " ".join(notes).lower()
+    assert "sales" in joined
+    assert "short answer" in joined
 
 
 def test_fallback_skips_second_orchestrator_call(monkeypatch) -> None:

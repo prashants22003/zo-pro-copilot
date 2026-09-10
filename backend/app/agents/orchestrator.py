@@ -25,8 +25,8 @@ from .domain import run_cross_domain, run_domain_agent
 from .insight import list_alerts
 
 
-ORCH_SYSTEM = """You are Zo-Pro Copilot, talking to a business user about Wide World Importers.
-You never invent numbers. You never write SQL except via cross_domain_query, and only when a real join is required.
+ORCH_SYSTEM = """You are Zo-Pro Copilot, a friendly colleague who knows Wide World Importers sales and purchasing.
+You never invent numbers, names, trends, or events. You never write SQL except via cross_domain_query, and only when a real join is required.
 
 You assign work. Call sales_agent and/or purchase_agent with a precise brief (period, metric, grain).
 When they ask what needs attention, call get_live_alerts — do not invent warnings.
@@ -36,12 +36,53 @@ Call both domain agents for margin / buy-vs-sell. Do not call execute_sql; that 
 
 {windows}
 
-Write the user-facing answer only after you have the agent results. Speak as first person, calm, concise. Put the numbers in the prose.
-Never mention agents, tools, function calls, JSON, SQL, or that you are about to query.
-If the question is outside sales, purchasing, warehouse, or the demo clock, say so without calling an agent.
+Do not answer with figures until you have agent results. Then speak like a person, not a query tool: takeaway first, then the number.
+Never mention agents, tools, function calls, JSON, SQL, schema, or table names in what the user reads.
+If the question is outside sales, purchasing, warehouse, or the demo clock, say so plainly without calling an agent.
 """
 
+SYNTH_SUFFIX = (
+    "\nThe numbers are in. Reply like a helpful colleague on a floor walk — warm, short, and specific.\n"
+    "Rules:\n"
+    "- 2 to 4 sentences. Lead with the takeaway, then the figure, then one honest caveat if it matters "
+    "(demo clock, invoiced vs cash, credits).\n"
+    "- Use only the agent results. Never invent a number, name, trend, or event that is not in those results.\n"
+    "- If a result was rejected or errored, say plainly what you could not compute. Do not guess a substitute figure.\n"
+    "- Do not mention SQL, queries, agents, JSON, tools, schema names, or table names. The cards already carry the proof.\n"
+    "- You may offer one natural follow-up question.\n"
+    "- First person is fine (I, we).\n"
+)
+
 _ALERT_ASK = re.compile(r"need(s)? attention|what.?s wrong|alerts?|what should I look", re.I)
+
+
+def opening_status(message: str) -> str:
+    if _ALERT_ASK.search(message or ""):
+        return "I’ll pull what needs attention as of the demo clock."
+    metric = match_metric(message)
+    domain = (metric or {}).get("domain")
+    if domain == "purchase":
+        return "I’ll check purchasing as of the demo clock."
+    if domain == "both":
+        return "I’ll look across sales and purchasing as of the demo clock."
+    if domain == "sales":
+        return "I’ll check sales as of the demo clock."
+    return "One moment — I’ll look that up as of the demo clock."
+
+
+def status_for_calls(calls: list[ToolCall]) -> str:
+    names = {c.name for c in calls}
+    if "get_live_alerts" in names:
+        return "Pulling what needs attention…"
+    has_sales = "sales_agent" in names
+    has_purchase = "purchase_agent" in names
+    if has_sales and has_purchase:
+        return "I’ll look across sales and purchasing…"
+    if has_purchase:
+        return "Checking purchasing as of the demo clock…"
+    if has_sales:
+        return "Checking sales as of the demo clock…"
+    return "Looking that up as of the demo clock…"
 
 
 def _history_messages(history: list[dict]) -> list[ChatMessage]:
@@ -151,24 +192,26 @@ def _cards_from_tool(name: str, result: dict, user_message: str) -> list[dict]:
     return [card] if card else []
 
 
-def _template_answer(cards: list[dict], sources: list[str], user_message: str) -> str:
+def _template_answer(cards: list[dict], sources: list[str], user_message: str, clock: date) -> str:
     kpis: list[dict] = []
     for card in cards:
         kpis.extend(card.get("metrics") or [])
     metric = match_metric(user_message)
     title = metric["title"] if metric else None
     if kpis:
-        return template_from_kpis(kpis[:4], sources, title=title)
+        return template_from_kpis(kpis[:4], sources, title=title, clock=clock.isoformat())
     if any(c.get("text") for c in cards):
         return cards[0]["text"]
-    return "I could not compute that from the sales and purchasing tables."
+    return "I could not get a clean number for that from the live data."
 
 
-def run_chat(message: str, history: list[dict]) -> dict:
+def run_chat(message: str, history: list[dict], on_status=None) -> dict:
     clock = get_clock()
     hit = clock_only_answer(message, clock)
     if hit:
         return hit
+    if on_status:
+        on_status(opening_status(message))
     if not llm_available("orchestrator"):
         return {
             "error": unavailable_message("orchestrator"),
@@ -189,6 +232,8 @@ def run_chat(message: str, history: list[dict]) -> dict:
     resp = generate(system, messages, tools, role="orchestrator")
     native_calls = list(resp.tool_calls or [])
     calls = native_calls or _fallback_calls(message)
+    if calls and on_status:
+        on_status(status_for_calls(calls))
 
     if calls:
         messages.append(
@@ -220,10 +265,10 @@ def run_chat(message: str, history: list[dict]) -> dict:
                 )
             )
         if native_calls:
+            if on_status:
+                on_status("Putting that into a short answer…")
             resp = generate(
-                system
-                + "\nThe agent results are in. Write the user-facing answer from those results only. "
-                "If a query was rejected or errored, say what you could not compute. Do not emit JSON or SQL.",
+                system + SYNTH_SUFFIX,
                 messages,
                 tools=None,
                 role="orchestrator",
@@ -232,8 +277,9 @@ def run_chat(message: str, history: list[dict]) -> dict:
             resp = GenerateResult(text="")
 
     cards = dedupe_cards(cards)
-    fallback = _template_answer(cards, sources, message) if (calls or cards) else (
-        "I can help with sales, purchasing, and stock as of the demo clock."
+    fallback = _template_answer(cards, sources, message, clock) if (calls or cards) else (
+        "I can help with sales, purchasing, and stock as of the demo clock. "
+        "Ask how last quarter went, or what needs attention."
     )
     answer = sanitize_user_answer(text_of(resp), fallback) or fallback
     return {

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import date
+from queue import Queue
+from threading import Thread
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -10,7 +13,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from .agents.insight import list_alerts, refresh_alerts
-from .agents.orchestrator import run_chat
+from .agents.orchestrator import opening_status, run_chat
+from .clock_intent import is_clock_only
 from .agents.domain import run_cross_domain
 from .allowlists import INSIGHT_TABLES, display_names
 from .cards import alert_to_card
@@ -122,30 +126,67 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
+_SENTENCE = re.compile(r"(?<=[.!?])\s+")
+
+
+def _answer_chunks(answer: str) -> list[str]:
+    text = (answer or "").strip()
+    if not text:
+        return []
+    parts = [p for p in _SENTENCE.split(text) if p]
+    if len(parts) <= 1:
+        words = text.split()
+        if len(words) <= 14:
+            return [text]
+        out: list[str] = []
+        for i in range(0, len(words), 12):
+            piece = " ".join(words[i : i + 12])
+            if i + 12 < len(words):
+                piece += " "
+            out.append(piece)
+        return out
+    return [part + (" " if i < len(parts) - 1 else "") for i, part in enumerate(parts)]
+
+
 @app.post("/chat")
 def chat(body: ChatIn):
     def gen():
         yield ": keepalive\n\n"
-        try:
-            result = run_chat(body.message, body.history)
-        except Exception as exc:
-            yield _sse(
-                "error",
-                {"message": f"The language model could not complete that turn. {exc}"},
-            )
-            yield _sse("done", {"message_id": "err"})
-            return
+        if not is_clock_only(body.message):
+            yield _sse("status", {"text": opening_status(body.message)})
+        q: Queue = Queue()
+
+        def on_status(text: str) -> None:
+            q.put(("status", text))
+
+        def work() -> None:
+            try:
+                q.put(("ok", run_chat(body.message, body.history, on_status=on_status)))
+            except Exception as exc:
+                q.put(("exc", exc))
+
+        Thread(target=work, daemon=True).start()
+        result = None
+        while True:
+            kind, payload = q.get()
+            if kind == "status":
+                yield _sse("status", {"text": payload})
+                continue
+            if kind == "exc":
+                yield _sse(
+                    "error",
+                    {"message": f"The language model could not complete that turn. {payload}"},
+                )
+                yield _sse("done", {"message_id": "err"})
+                return
+            result = payload
+            break
         if result.get("error"):
             yield _sse("error", {"message": result["error"]})
             yield _sse("done", {"message_id": "err"})
             return
-        words = (result.get("answer") or "").split()
-        chunk = []
-        for i, w in enumerate(words):
-            chunk.append(w)
-            if len(chunk) >= 3 or i == len(words) - 1:
-                yield _sse("token", {"text": " ".join(chunk) + (" " if i < len(words) - 1 else "")})
-                chunk = []
+        for chunk in _answer_chunks(result.get("answer") or ""):
+            yield _sse("token", {"text": chunk})
         for card in result.get("cards") or []:
             yield _sse("card", card)
         if result.get("sources"):

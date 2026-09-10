@@ -149,20 +149,32 @@ def sources_match_contract(tables: list[str] | None, metric: dict | None) -> boo
     return True
 
 
+def _spoken_label(raw: str | None, title: str | None) -> str:
+    text = (raw or title or "the figure").replace("_", " ").strip()
+    return text[:1].upper() + text[1:] if text else "The figure"
+
+
 def template_from_kpis(
     kpis: list[dict],
     sources: list[str],
     *,
     title: str | None = None,
+    clock: str | None = None,
 ) -> str:
-    src = ", ".join(sources) if sources else "the queried tables"
+    del sources  # cards already cite sources; spoken answers should not name tables
     if not kpis:
-        return f"I could not compute that from {src}."
+        return "I could not get a clean number for that from the live data."
     head = kpis[0]
     value = head.get("value")
-    label = head.get("label") or (title or "result")
+    label = _spoken_label(head.get("label"), title)
+    as_of = f" That's as of the demo clock ({clock})." if clock else ""
     extra = ""
     if len(kpis) > 1:
-        rest = ", ".join(f"{k.get('value')} {k.get('label')}" for k in kpis[1:3])
-        extra = f" Also: {rest}."
-    return f"{label} is {value}, from {src}.{extra}".strip()
+        rest = "; ".join(
+            f"{_spoken_label(k.get('label'), None)} {k.get('value')}" for k in kpis[1:3]
+        )
+        extra = f" Also worth noting: {rest}."
+    return (
+        f"{label} comes to {value}.{as_of}{extra} "
+        "Open a card if you want the rows behind it."
+    ).strip()

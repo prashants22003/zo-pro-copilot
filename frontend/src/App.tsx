@@ -30,6 +30,7 @@ type Msg = {
   cards: Card[];
   sources?: string[];
   metrics?: string[];
+  status?: string;
 };
 
 const ease = [0.22, 0.8, 0.28, 1] as const;
@@ -135,7 +136,13 @@ export default function App() {
       }))
       .filter((h) => h.content.trim().length > 0);
     const user: Msg = { id: `u-${Date.now()}`, role: "user", text: q, cards: [] };
-    const asst: Msg = { id: `a-${Date.now()}`, role: "assistant", text: "", cards: [] };
+    const asst: Msg = {
+      id: `a-${Date.now()}`,
+      role: "assistant",
+      text: "",
+      cards: [],
+      status: "One moment…",
+    };
     setMsgs((m) => [...m, user, asst]);
     setBusy(true);
     try {
@@ -144,11 +151,18 @@ export default function App() {
           const copy = [...all];
           const last = copy[copy.length - 1];
           if (!last || last.role !== "assistant") return all;
-          if (ev.event === "token") last.text += ev.data.text;
+          if (ev.event === "status") last.status = ev.data.text;
+          if (ev.event === "token") {
+            last.status = undefined;
+            last.text += ev.data.text;
+          }
           if (ev.event === "card") last.cards = [...last.cards, ev.data];
           if (ev.event === "sources") last.sources = ev.data.display_sources;
           if (ev.event === "metrics_used") last.metrics = ev.data.metrics;
-          if (ev.event === "error") last.text = ev.data.message;
+          if (ev.event === "error") {
+            last.status = undefined;
+            last.text = ev.data.message;
+          }
           return copy;
         });
       });
@@ -156,7 +170,10 @@ export default function App() {
       setMsgs((all) => {
         const copy = [...all];
         const last = copy[copy.length - 1];
-        if (last) last.text = "The copilot could not reach the API. Check that the stack is running.";
+        if (last) {
+          last.status = undefined;
+          last.text = "The copilot could not reach the API. Check that the stack is running.";
+        }
         return copy;
       });
     } finally {
@@ -255,7 +272,10 @@ export default function App() {
           </header>
 
           <div ref={scroller} className="flex-1 space-y-[22px] overflow-y-auto pr-1">
-            {msgs.map((m) => (
+            {msgs.map((m) => {
+              const spoken =
+                m.role === "assistant" ? displayAssistantText(m.text, m.cards.length > 0) : m.text;
+              return (
               <div key={m.id}>
                 <div className={`flex gap-3 ${m.role === "user" ? "ml-auto max-w-[70%] flex-row-reverse" : "max-w-[86%]"}`}>
                   <div
@@ -270,22 +290,17 @@ export default function App() {
                   <div className="pt-0.5">
                     {m.role === "assistant" && <p className="mb-1 text-[11px] text-text-low">Copilot</p>}
                     {m.role === "assistant" ? (
-                      displayAssistantText(m.text, m.cards.length > 0) ? (
-                        <p className="font-voice text-base leading-relaxed text-text-hi">
-                          {displayAssistantText(m.text, m.cards.length > 0)}
-                        </p>
-                      ) : null
+                      <>
+                        {m.status && !spoken ? (
+                          <p className="font-voice text-base leading-relaxed text-text-low">{m.status}</p>
+                        ) : null}
+                        {spoken ? (
+                          <p className="font-voice text-base leading-relaxed text-text-hi">{spoken}</p>
+                        ) : null}
+                      </>
                     ) : (
                       <p className="rounded-[14px_14px_4px_14px] border border-white/[0.08] bg-ink-1 px-3.5 py-2.5 text-[14.5px] text-text-mid">
                         {m.text}
-                      </p>
-                    )}
-                    {m.metrics && m.metrics.length > 0 && (
-                      <p className="mt-2 font-mono text-[11px] text-text-low">Using {m.metrics.join(", ")}</p>
-                    )}
-                    {m.sources && m.sources.length > 0 && (
-                      <p className="mt-1 flex items-center gap-1 text-[11px] text-text-low">
-                        <IconDatabase size={12} /> {m.sources.join(" · ")}
                       </p>
                     )}
                   </div>
@@ -300,8 +315,8 @@ export default function App() {
                   </div>
                 ))}
               </div>
-            ))}
-            {busy && <p className="pl-[42px] font-voice text-sm text-text-low">Looking at the tables…</p>}
+              );
+            })}
           </div>
 
           <div className="mt-6">
